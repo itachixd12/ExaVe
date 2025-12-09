@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendar Cita - Pet Care</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-50 text-gray-800">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-green-600 to-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-6 py-6">
+            <div class="flex justify-between items-center">
+                <h1 class="text-3xl font-bold">🐾 Pet Care</h1>
+                <a href="index-veterinaria.html" class="text-white hover:text-green-200">← Volver al inicio</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-6 py-12">
+        <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-8">
+            <h2 class="text-3xl font-bold mb-8 text-center text-gray-800">Agendar Cita Veterinaria</h2>
+
+            <!-- Formulario de Cita -->
+            <form id="form-cita" class="space-y-6">
+                <!-- Seleccionar Mascota -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Mascota</label>
+                    <select id="mascota-select" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        <option value="">Selecciona tu mascota...</option>
+                    </select>
+                    <button type="button" onclick="mostrarNuevaMascota()" class="text-sm text-green-600 mt-2 hover:text-green-700">
+                        + Registrar nueva mascota
+                    </button>
+                </div>
+
+                <!-- Formulario Nueva Mascota (inicialmente oculto) -->
+                <div id="nueva-mascota-form" class="p-4 bg-green-50 rounded-lg border border-green-200 hidden space-y-4">
+                    <h3 class="font-bold text-gray-800">Registrar Nueva Mascota</h3>
+                    <input type="text" id="mascota-nombre" placeholder="Nombre de la mascota" class="w-full px-4 py-2 border border-gray-300 rounded-lg" />
+                    <select id="mascota-especie" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        <option value="">Selecciona la especie</option>
+                        <option value="Perro">Perro</option>
+                        <option value="Gato">Gato</option>
+                        <option value="Conejo">Conejo</option>
+                        <option value="Hamster">Hámster</option>
+                        <option value="Pajaro">Pájaro</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                    <input type="text" id="mascota-raza" placeholder="Raza (opcional)" class="w-full px-4 py-2 border border-gray-300 rounded-lg" />
+                    <input type="number" id="mascota-edad" placeholder="Edad (años)" class="w-full px-4 py-2 border border-gray-300 rounded-lg" />
+                    <input type="number" id="mascota-peso" placeholder="Peso (kg)" step="0.1" class="w-full px-4 py-2 border border-gray-300 rounded-lg" />
+                </div>
+
+                <!-- Seleccionar Servicio -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Servicio</label>
+                    <select id="servicio-select" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        <option value="">Selecciona un servicio...</option>
+                    </select>
+                </div>
+
+                <!-- Seleccionar Fecha -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Fecha</label>
+                    <input type="date" id="fecha-cita" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" />
+                </div>
+
+                <!-- Seleccionar Hora -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Hora</label>
+                    <select id="hora-cita" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        <option value="">Selecciona una hora...</option>
+                    </select>
+                    <p class="text-sm text-gray-600 mt-2">Horario de atención: 8:00 AM - 5:00 PM</p>
+                </div>
+
+                <!-- Observaciones -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Observaciones (Opcional)</label>
+                    <textarea id="observaciones" rows="4" placeholder="Cuéntanos sobre la salud de tu mascota..." 
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"></textarea>
+                </div>
+
+                <button type="submit" class="w-full px-6 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition">
+                    Agendar Cita
+                </button>
+            </form>
+
+            <div id="mensaje" class="mt-6 p-4 rounded-lg hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8000/api';
+        const token = localStorage.getItem('authToken');
+
+        // Verificar autenticación
+        if (!token) {
+            alert('Debes iniciar sesión para agendar una cita');
+            window.location.href = 'login.html';
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            cargarMascotas();
+            cargarServicios();
+            agregarEventosFormulario();
+        });
+
+        // Cargar mascotas del usuario
+        async function cargarMascotas() {
+            try {
+                const response = await fetch(`${API_URL}/mascotas`, {
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+                const mascotas = await response.json();
+
+                const select = document.getElementById('mascota-select');
+                select.innerHTML = '<option value="">Selecciona tu mascota...</option>';
+
+                mascotas.forEach(mascota => {
+                    const option = document.createElement('option');
+                    option.value = mascota.id;
+                    option.textContent = `${mascota.nombre} (${mascota.especie})`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error al cargar mascotas:', error);
+            }
+        }
+
+        // Cargar servicios
+        async function cargarServicios() {
+            try {
+                const response = await fetch(`${API_URL}/servicios`);
+                const servicios = await response.json();
+
+                const select = document.getElementById('servicio-select');
+                select.innerHTML = '<option value="">Selecciona un servicio...</option>';
+
+                servicios.forEach(servicio => {
+                    const option = document.createElement('option');
+                    option.value = servicio.id;
+                    option.textContent = `${servicio.nombre} - $${parseFloat(servicio.precio).toFixed(2)}`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error al cargar servicios:', error);
+            }
+        }
+
+        // Mostrar/ocultar formulario nueva mascota
+        function mostrarNuevaMascota() {
+            const form = document.getElementById('nueva-mascota-form');
+            form.classList.toggle('hidden');
+        }
+
+        // Agregar eventos
+        function agregarEventosFormulario() {
+            // Cuando cambia la fecha, cargar horas disponibles
+            document.getElementById('fecha-cita').addEventListener('change', function () {
+                if (this.value) {
+                    cargarHorasDisponibles(this.value);
+                }
+            });
+
+            // Enviar formulario
+            document.getElementById('form-cita').addEventListener('submit', function (e) {
+                e.preventDefault();
+                agendarCita();
+            });
+        }
+
+        // Cargar horas disponibles
+        async function cargarHorasDisponibles(fecha) {
+            try {
+                const response = await fetch(`${API_URL}/citas/horarios-disponibles?fecha=${fecha}`);
+                const data = await response.json();
+
+                const select = document.getElementById('hora-cita');
+                select.innerHTML = '<option value="">Selecciona una hora...</option>';
+
+                data.horas_disponibles.forEach(hora => {
+                    const option = document.createElement('option');
+                    option.value = hora;
+                    option.textContent = hora;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error al cargar horas:', error);
+            }
+        }
+
+        // Agendar cita
+        async function agendarCita() {
+            const mascotaId = document.getElementById('mascota-select').value;
+            const formNuevaMascota = document.getElementById('nueva-mascota-form');
+            let mascotaIdFinal = mascotaId;
+
+            // Si se está creando una nueva mascota
+            if (!mascotaId && !formNuevaMascota.classList.contains('hidden')) {
+                try {
+                    const mascotaData = {
+                        nombre: document.getElementById('mascota-nombre').value,
+                        especie: document.getElementById('mascota-especie').value,
+                        raza: document.getElementById('mascota-raza').value || null,
+                        edad: document.getElementById('mascota-edad').value || null,
+                        peso: document.getElementById('mascota-peso').value || null
+                    };
+
+                    const mascotaResponse = await fetch(`${API_URL}/mascotas`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + token
+                        },
+                        body: JSON.stringify(mascotaData)
+                    });
+
+                    if (!mascotaResponse.ok) {
+                        throw new Error('Error al crear mascota');
+                    }
+
+                    const mascotaNueva = await mascotaResponse.json();
+                    mascotaIdFinal = mascotaNueva.id;
+                } catch (error) {
+                    mostrarMensaje('Error al crear la mascota: ' + error.message, 'error');
+                    return;
+                }
+            }
+
+            if (!mascotaIdFinal) {
+                mostrarMensaje('Debes seleccionar o crear una mascota', 'error');
+                return;
+            }
+
+            try {
+                const citaData = {
+                    mascota_id: mascotaIdFinal,
+                    servicio_id: document.getElementById('servicio-select').value,
+                    fecha: document.getElementById('fecha-cita').value,
+                    hora: document.getElementById('hora-cita').value,
+                    observaciones: document.getElementById('observaciones').value || null
+                };
+
+                const response = await fetch(`${API_URL}/citas`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify(citaData)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message);
+                }
+
+                mostrarMensaje('¡Cita agendada exitosamente! El administrador la confirmará pronto.', 'success');
+                setTimeout(() => {
+                    window.location.href = 'mis-citas.html';
+                }, 2000);
+            } catch (error) {
+                mostrarMensaje('Error al agendar cita: ' + error.message, 'error');
+            }
+        }
+
+        function mostrarMensaje(texto, tipo) {
+            const div = document.getElementById('mensaje');
+            div.textContent = texto;
+            div.className = `mt-6 p-4 rounded-lg ${tipo === 'success' ? 'bg-green-100 text-green-800 border border-green-300' : 'bg-red-100 text-red-800 border border-red-300'}`;
+            div.classList.remove('hidden');
+        }
+    </script>
+</body>
+
+</html>

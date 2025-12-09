@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contacto - Clínica Veterinaria Pet Care</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Mapbox CSS -->
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        #miniMapa {
+            width: 100%;
+            height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .contact-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .contact-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .contact-card h3 {
+            color: #16a34a;
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .contact-card p {
+            color: #666;
+            margin: 8px 0;
+            line-height: 1.6;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #16a34a;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 150px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #16a34a 0%, #059669 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-800">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-green-600 to-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-6 py-6">
+            <div class="flex flex-row justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <span class="text-4xl">🐾</span>
+                    <h1 class="text-4xl font-bold">Clínica Veterinaria Pet Care</h1>
+                </div>
+                <nav class="hidden md:flex md:items-center md:space-x-6">
+                    <ul class="flex space-x-6">
+                        <li><a href="index-veterinaria.html" class="hover:text-green-200">Inicio</a></li>
+                        <li><a href="index-veterinaria.html#servicios" class="hover:text-green-200">Servicios</a></li>
+                        <li><a href="ubicacion.html" class="hover:text-green-200">Ubicación</a></li>
+                        <li><a href="contacto.html" class="font-bold text-yellow-300">Contacto</a></li>
+                        <li id="usuario-menu" style="display:none;">
+                            <a href="mis-citas.html" class="hover:text-green-200">Mis Citas</a>
+                        </li>
+                        <li id="usuario-menu" style="display:none;">
+                            <a href="mis-mascotas.html" class="hover:text-green-200">Mis Mascotas</a>
+                        </li>
+                    </ul>
+                    <button onclick="logout()" id="btnLogout" style="display:none;" class="ml-6 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded">
+                        Cerrar sesión
+                    </button>
+                </nav>
+                <div id="auth-menu" class="hidden md:flex md:space-x-4">
+                    <a href="login.html" class="px-4 py-2 bg-white text-green-600 rounded font-semibold hover:bg-gray-100">
+                        Iniciar sesión
+                    </a>
+                    <a href="register.html" class="px-4 py-2 bg-green-700 text-white rounded hover:bg-green-800">
+                        Registrarse
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenido Principal -->
+    <section class="container mx-auto px-6 py-12">
+        <h2 class="text-4xl font-bold mb-12 text-center text-gray-800">Contacta con Nosotros</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-12 mb-12">
+            <!-- Formulario de Contacto -->
+            <div>
+                <h3 class="text-2xl font-bold mb-8 text-green-600">✉️ Envíanos un Mensaje</h3>
+                <form id="contactForm" class="bg-white p-8 rounded-lg shadow-lg">
+                    <div class="form-group">
+                        <label for="nombre">Nombre Completo</label>
+                        <input type="text" id="nombre" name="nombre" required placeholder="Tu nombre">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Correo Electrónico</label>
+                        <input type="email" id="email" name="email" required placeholder="tu@email.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="telefono">Teléfono</label>
+                        <input type="tel" id="telefono" name="telefono" placeholder="+57 (1) 1234-5678">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="asunto">Asunto</label>
+                        <input type="text" id="asunto" name="asunto" required placeholder="¿Cuál es tu consulta?">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="mensaje">Mensaje</label>
+                        <textarea id="mensaje" name="mensaje" required placeholder="Cuéntanos tu consulta..."></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full py-3 font-bold text-white rounded-lg transition-all">
+                        📨 Enviar Mensaje
+                    </button>
+                </form>
+
+                <div id="mensajeExito" style="display:none;" class="mt-4 p-4 bg-green-100 border-l-4 border-green-600 text-green-700 rounded">
+                    ✓ ¡Mensaje enviado exitosamente! Nos pondremos en contacto pronto.
+                </div>
+
+                <div id="mensajeError" style="display:none;" class="mt-4 p-4 bg-red-100 border-l-4 border-red-600 text-red-700 rounded">
+                    ✗ Error al enviar el mensaje. Por favor intenta de nuevo.
+                </div>
+            </div>
+
+            <!-- Información de Contacto -->
+            <div>
+                <h3 class="text-2xl font-bold mb-8 text-green-600">📞 Información de Contacto</h3>
+
+                <!-- Mini Mapa -->
+                <div id="miniMapa" class="mb-8"></div>
+
+                <!-- Tarjetas de Contacto -->
+                <div class="contact-card mb-6">
+                    <h3>📍 Dirección</h3>
+                    <p>Calle Principal 123</p>
+                    <p>Centro Veterinario, Piso 2</p>
+                    <p>Bogotá, Colombia</p>
+                </div>
+
+                <div class="contact-card mb-6">
+                    <h3>📞 Teléfono</h3>
+                    <p><strong>Principal:</strong> +57 (1) 1234-5678</p>
+                    <p><strong>Emergencias:</strong> +57 (1) 9999-9999</p>
+                    <p style="font-size: 12px; color: #999; margin-top: 8px;">Disponible 24/7 para emergencias</p>
+                </div>
+
+                <div class="contact-card mb-6">
+                    <h3>✉️ Email</h3>
+                    <p><strong>General:</strong> info@petcare.com</p>
+                    <p><strong>Citas:</strong> citas@petcare.com</p>
+                    <p><strong>Emergencias:</strong> emergencias@petcare.com</p>
+                </div>
+
+                <div class="contact-card">
+                    <h3>⏰ Horarios</h3>
+                    <p><strong>Lunes a Viernes:</strong> 8:00 AM - 5:00 PM</p>
+                    <p><strong>Sábado:</strong> 9:00 AM - 2:00 PM</p>
+                    <p><strong>Domingo:</strong> Cerrado</p>
+                    <p style="font-size: 12px; color: #999; margin-top: 8px;">Descanso: 12:00 PM - 1:00 PM</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Redes Sociales -->
+        <div class="bg-white rounded-lg shadow-lg p-8 text-center">
+            <h3 class="text-2xl font-bold mb-6 text-green-600">📱 Síguenos en Redes Sociales</h3>
+            <div class="flex justify-center gap-8">
+                <a href="#" class="text-4xl hover:scale-110 transition">📘</a>
+                <a href="#" class="text-4xl hover:scale-110 transition">📷</a>
+                <a href="#" class="text-4xl hover:scale-110 transition">🐦</a>
+                <a href="#" class="text-4xl hover:scale-110 transition">💬</a>
+            </div>
+        </div>
+
+        <!-- Botón para Agendar -->
+        <div class="mt-12 text-center">
+            <a href="agendar-cita.html" class="inline-block px-8 py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg text-lg transition-all">
+                🐾 Agendar Cita Ahora
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8 mt-12">
+        <div class="container mx-auto px-6 text-center">
+            <p>&copy; 2024 Clínica Veterinaria Pet Care. Todos los derechos reservados.</p>
+            <p class="mt-2">🐾 Cuidando de tus mascotas como si fueran nuestras 🐾</p>
+        </div>
+    </footer>
+
+    <script>
+        // Verificar autenticación
+        document.addEventListener('DOMContentLoaded', function () {
+            const token = localStorage.getItem('token');
+            const rol = localStorage.getItem('rol');
+            
+            if (token && rol === 'cliente') {
+                document.getElementById('auth-menu').style.display = 'none';
+                document.getElementById('usuario-menu').style.display = 'inline-block';
+                document.getElementById('btnLogout').style.display = 'inline-block';
+            }
+
+            // Inicializar mini mapa
+            inicializarMiniMapa();
+
+            // Manejo del formulario
+            document.getElementById('contactForm').addEventListener('submit', handleSubmit);
+        });
+
+        // Logout
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('rol');
+            localStorage.removeItem('user_id');
+            window.location.href = 'index-veterinaria.html';
+        }
+
+        // Inicializar Mini Mapa
+        function inicializarMiniMapa() {
+            mapboxgl.accessToken = 'pk.eyJ1IjoiZXJpY2tzdGV2ZW4xNyIsImEiOiJjbWl6M25jcjgwbTJ4M2tweTJ5dXEzc29iIn0.gCKA1vCnL0A1rY2qSL3uqQ';
+            
+            const miniMap = new mapboxgl.Map({
+                container: 'miniMapa',
+                style: 'mapbox://styles/mapbox/streets-v12',
+                center: [-74.0060, 4.7110], // Bogotá
+                zoom: 14
+            });
+
+            // Marcador de la clínica
+            new mapboxgl.Marker({ color: '#16a34a' })
+                .setLngLat([-74.0060, 4.7110])
+                .setPopup(new mapboxgl.Popup().setHTML('<strong>Clínica Veterinaria Pet Care</strong>'))
+                .addTo(miniMap);
+        }
+
+        // Manejo del formulario de contacto
+        async function handleSubmit(e) {
+            e.preventDefault();
+
+            const nombre = document.getElementById('nombre').value;
+            const email = document.getElementById('email').value;
+            const telefono = document.getElementById('telefono').value;
+            const asunto = document.getElementById('asunto').value;
+            const mensaje = document.getElementById('mensaje').value;
+
+            try {
+                // Simular envío de email (en producción, enviarías a tu servidor)
+                console.log('Enviando mensaje:', {
+                    nombre,
+                    email,
+                    telefono,
+                    asunto,
+                    mensaje
+                });
+
+                // Mostrar mensaje de éxito
+                document.getElementById('contactForm').style.display = 'none';
+                document.getElementById('mensajeExito').style.display = 'block';
+
+                // Limpiar después de 3 segundos
+                setTimeout(() => {
+                    document.getElementById('contactForm').reset();
+                    document.getElementById('contactForm').style.display = 'block';
+                    document.getElementById('mensajeExito').style.display = 'none';
+                }, 3000);
+
+            } catch (error) {
+                console.error('Error al enviar:', error);
+                document.getElementById('mensajeError').style.display = 'block';
+            }
+        }
+    </script>
+</body>
+
+</html>

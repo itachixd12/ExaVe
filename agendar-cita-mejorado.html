@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendar Cita - Clínica Veterinaria Pet Care</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Mapbox CSS -->
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        #mapaUbicacion {
+            width: 100%;
+            height: 300px;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+
+        .step {
+            flex: 1;
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 0 5px;
+            background: #f0f0f0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .step.active {
+            background: linear-gradient(135deg, #16a34a 0%, #059669 100%);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .step.completed {
+            background: #10b981;
+            color: white;
+        }
+
+        .form-section {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .form-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #16a34a 0%, #059669 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.4);
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #333;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+
+        .horario-item {
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            margin: 5px;
+        }
+
+        .horario-item:hover {
+            border-color: #16a34a;
+            background: #f0fdf4;
+        }
+
+        .horario-item.selected {
+            background: #16a34a;
+            color: white;
+            border-color: #16a34a;
+        }
+
+        .mascota-option {
+            padding: 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px 0;
+            transition: all 0.3s ease;
+        }
+
+        .mascota-option:hover {
+            border-color: #16a34a;
+            background: #f0fdf4;
+        }
+
+        .mascota-option.selected {
+            background: #16a34a;
+            color: white;
+            border-color: #16a34a;
+        }
+
+        .resumen-cita {
+            background: #f9fafb;
+            border-left: 4px solid #16a34a;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .resumen-cita p {
+            margin: 10px 0;
+        }
+
+        .resumen-cita strong {
+            color: #16a34a;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-800">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-green-600 to-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-6 py-6">
+            <div class="flex flex-row justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <span class="text-4xl">🐾</span>
+                    <h1 class="text-4xl font-bold">Clínica Veterinaria Pet Care</h1>
+                </div>
+                <nav class="hidden md:flex md:items-center md:space-x-6">
+                    <ul class="flex space-x-6">
+                        <li><a href="index-veterinaria.html" class="hover:text-green-200">Inicio</a></li>
+                        <li><a href="index-veterinaria.html#servicios" class="hover:text-green-200">Servicios</a></li>
+                        <li><a href="ubicacion.html" class="hover:text-green-200">Ubicación</a></li>
+                        <li id="usuario-menu" style="display:none;">
+                            <a href="mis-citas.html" class="hover:text-green-200">Mis Citas</a>
+                        </li>
+                        <li id="usuario-menu" style="display:none;">
+                            <a href="mis-mascotas.html" class="hover:text-green-200">Mis Mascotas</a>
+                        </li>
+                    </ul>
+                    <button onclick="logout()" id="btnLogout" style="display:none;" class="ml-6 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded">
+                        Cerrar sesión
+                    </button>
+                </nav>
+                <div id="auth-menu" class="hidden md:flex md:space-x-4">
+                    <a href="login.html" class="px-4 py-2 bg-white text-green-600 rounded font-semibold hover:bg-gray-100">
+                        Iniciar sesión
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenido Principal -->
+    <section class="container mx-auto px-6 py-12">
+        <h2 class="text-4xl font-bold mb-8 text-center text-gray-800">Agendar Cita</h2>
+
+        <!-- Indicador de Pasos -->
+        <div class="step-indicator">
+            <div class="step active" onclick="goToStep(1)">
+                <div class="text-2xl">🐾</div>
+                <div style="font-size: 12px; margin-top: 5px;">Mascota</div>
+            </div>
+            <div class="step" onclick="goToStep(2)">
+                <div class="text-2xl">💊</div>
+                <div style="font-size: 12px; margin-top: 5px;">Servicio</div>
+            </div>
+            <div class="step" onclick="goToStep(3)">
+                <div class="text-2xl">📅</div>
+                <div style="font-size: 12px; margin-top: 5px;">Fecha</div>
+            </div>
+            <div class="step" onclick="goToStep(4)">
+                <div class="text-2xl">⏰</div>
+                <div style="font-size: 12px; margin-top: 5px;">Hora</div>
+            </div>
+            <div class="step" onclick="goToStep(5)">
+                <div class="text-2xl">✓</div>
+                <div style="font-size: 12px; margin-top: 5px;">Confirmar</div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-lg p-8">
+            <!-- PASO 1: Mascota -->
+            <div id="paso1" class="form-section active">
+                <h3 class="text-2xl font-bold mb-6 text-green-600">Selecciona o Crea una Mascota</h3>
+
+                <div id="mascotasExistentes" class="mb-6"></div>
+
+                <div class="border-t pt-6">
+                    <h4 class="font-bold mb-4">O crea una nueva mascota:</h4>
+                    <input type="text" id="nombreMascota" placeholder="Nombre de la mascota" class="w-full p-3 border rounded mb-4">
+                    <select id="especieMascota" class="w-full p-3 border rounded mb-4">
+                        <option value="">Selecciona especie</option>
+                        <option value="perro">Perro</option>
+                        <option value="gato">Gato</option>
+                        <option value="pajaro">Pájaro</option>
+                        <option value="hamster">Hámster</option>
+                        <option value="conejo">Conejo</option>
+                    </select>
+                    <input type="text" id="razaMascota" placeholder="Raza" class="w-full p-3 border rounded mb-4">
+                    <input type="number" id="edadMascota" placeholder="Edad (años)" class="w-full p-3 border rounded mb-4">
+                    <input type="number" id="pesoMascota" placeholder="Peso (kg)" step="0.1" class="w-full p-3 border rounded mb-4">
+                    <button onclick="agregarNuevaMascota()" class="btn-primary w-full">Agregar Mascota</button>
+                </div>
+
+                <div class="flex justify-between mt-8">
+                    <button onclick="goToStep(2)" class="btn-primary">Siguiente →</button>
+                </div>
+            </div>
+
+            <!-- PASO 2: Servicio -->
+            <div id="paso2" class="form-section">
+                <h3 class="text-2xl font-bold mb-6 text-green-600">Selecciona un Servicio</h3>
+                <div id="serviciosContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8"></div>
+                <div class="flex justify-between mt-8">
+                    <button onclick="goToStep(1)" class="btn-secondary">← Anterior</button>
+                    <button onclick="goToStep(3)" class="btn-primary">Siguiente →</button>
+                </div>
+            </div>
+
+            <!-- PASO 3: Fecha -->
+            <div id="paso3" class="form-section">
+                <h3 class="text-2xl font-bold mb-6 text-green-600">Selecciona una Fecha</h3>
+                <input type="date" id="fechaCita" class="w-full p-3 border rounded mb-6">
+                <div id="mapaUbicacion"></div>
+                <div class="flex justify-between mt-8">
+                    <button onclick="goToStep(2)" class="btn-secondary">← Anterior</button>
+                    <button onclick="goToStep(4)" class="btn-primary">Siguiente →</button>
+                </div>
+            </div>
+
+            <!-- PASO 4: Hora -->
+            <div id="paso4" class="form-section">
+                <h3 class="text-2xl font-bold mb-6 text-green-600">Selecciona una Hora</h3>
+                <div id="horariosContainer" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8"></div>
+                <div class="flex justify-between mt-8">
+                    <button onclick="goToStep(3)" class="btn-secondary">← Anterior</button>
+                    <button onclick="goToStep(5)" class="btn-primary">Siguiente →</button>
+                </div>
+            </div>
+
+            <!-- PASO 5: Confirmar -->
+            <div id="paso5" class="form-section">
+                <h3 class="text-2xl font-bold mb-6 text-green-600">Confirmar tu Cita</h3>
+                <div class="resumen-cita">
+                    <p><strong>Mascota:</strong> <span id="resumenMascota">-</span></p>
+                    <p><strong>Servicio:</strong> <span id="resumenServicio">-</span></p>
+                    <p><strong>Fecha:</strong> <span id="resumenFecha">-</span></p>
+                    <p><strong>Hora:</strong> <span id="resumenHora">-</span></p>
+                    <p><strong>Precio:</strong> <span id="resumenPrecio">-</span></p>
+                </div>
+                <div class="flex justify-between mt-8">
+                    <button onclick="goToStep(4)" class="btn-secondary">← Anterior</button>
+                    <button onclick="confirmarCita()" class="btn-primary">Confirmar Cita</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8 mt-12">
+        <div class="container mx-auto px-6 text-center">
+            <p>&copy; 2024 Clínica Veterinaria Pet Care. Todos los derechos reservados.</p>
+            <p class="mt-2">🐾 Cuidando de tus mascotas como si fueran nuestras 🐾</p>
+        </div>
+    </footer>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8000/api';
+        const token = localStorage.getItem('token');
+        const userId = localStorage.getItem('user_id');
+
+        let datosCita = {
+            mascota_id: null,
+            servicio_id: null,
+            fecha: null,
+            hora: null,
+            mascotaNueva: null
+        };
+
+        let mascotas = [];
+        let servicios = [];
+
+        document.addEventListener('DOMContentLoaded', function () {
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            document.getElementById('usuario-menu').style.display = 'inline-block';
+            document.getElementById('btnLogout').style.display = 'inline-block';
+            document.getElementById('auth-menu').style.display = 'none';
+
+            cargarMascotas();
+            cargarServicios();
+            inicializarMapa();
+            establecerFechaMinima();
+        });
+
+        // Inicializar mapa
+        function inicializarMapa() {
+            mapboxgl.accessToken = 'pk.eyJ1IjoiZXJpY2tzdGV2ZW4xNyIsImEiOiJjbWl6M25jcjgwbTJ4M2tweTJ5dXEzc29iIn0.gCKA1vCnL0A1rY2qSL3uqQ';
+            
+            const mapaAgendar = new mapboxgl.Map({
+                container: 'mapaUbicacion',
+                style: 'mapbox://styles/mapbox/streets-v12',
+                center: [-74.0060, 4.7110],
+                zoom: 14
+            });
+
+            new mapboxgl.Marker({ color: '#16a34a' })
+                .setLngLat([-74.0060, 4.7110])
+                .setPopup(new mapboxgl.Popup().setHTML('<strong>Clínica Veterinaria Pet Care</strong><br>Calle Principal 123'))
+                .addTo(mapaAgendar);
+        }
+
+        // Cargar mascotas
+        async function cargarMascotas() {
+            try {
+                const response = await fetch(`${API_URL}/mascotas`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                mascotas = data;
+                mostrarMascotas();
+            } catch (error) {
+                console.error('Error al cargar mascotas:', error);
+            }
+        }
+
+        // Mostrar mascotas
+        function mostrarMascotas() {
+            const container = document.getElementById('mascotasExistentes');
+            container.innerHTML = '<h4 class="font-bold mb-4">Tus Mascotas:</h4>';
+
+            if (mascotas.length === 0) {
+                container.innerHTML += '<p class="text-gray-600">No tienes mascotas registradas aún.</p>';
+                return;
+            }
+
+            mascotas.forEach(mascota => {
+                const iconos = { perro: '🐕', gato: '🐈', pajaro: '🦜', hamster: '🐹', conejo: '🐰' };
+                const html = `
+                    <div class="mascota-option" onclick="seleccionarMascota(${mascota.id}, '${mascota.nombre}')">
+                        <div style="font-size: 24px;">${iconos[mascota.especie] || '🐾'}</div>
+                        <div><strong>${mascota.nombre}</strong> - ${mascota.especie}</div>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+        }
+
+        // Seleccionar mascota
+        function seleccionarMascota(id, nombre) {
+            datosCita.mascota_id = id;
+            datosCita.mascotaNueva = null;
+            document.querySelectorAll('.mascota-option').forEach(el => el.classList.remove('selected'));
+            event.target.closest('.mascota-option').classList.add('selected');
+        }
+
+        // Agregar nueva mascota
+        async function agregarNuevaMascota() {
+            const nombre = document.getElementById('nombreMascota').value;
+            const especie = document.getElementById('especieMascota').value;
+            const raza = document.getElementById('razaMascota').value;
+            const edad = document.getElementById('edadMascota').value;
+            const peso = document.getElementById('pesoMascota').value;
+
+            if (!nombre || !especie || !raza || !edad || !peso) {
+                alert('Por favor completa todos los campos');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/mascotas`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ nombre, especie, raza, edad, peso })
+                });
+
+                if (response.ok) {
+                    const mascota = await response.json();
+                    datosCita.mascotaNueva = mascota;
+                    datosCita.mascota_id = mascota.id;
+                    alert('✓ Mascota agregada exitosamente');
+                    cargarMascotas();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // Cargar servicios
+        async function cargarServicios() {
+            try {
+                const response = await fetch(`${API_URL}/servicios`);
+                const data = await response.json();
+                servicios = data;
+                mostrarServicios();
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // Mostrar servicios
+        function mostrarServicios() {
+            const container = document.getElementById('serviciosContainer');
+            container.innerHTML = '';
+
+            const iconos = {
+                consulta: '👨‍⚕️',
+                vacuna: '💉',
+                bano: '🛁',
+                cirugia: '🏥'
+            };
+
+            servicios.forEach(servicio => {
+                const html = `
+                    <div class="mascota-option" onclick="seleccionarServicio(${servicio.id}, '${servicio.nombre}', ${servicio.precio})">
+                        <div style="font-size: 24px;">${iconos[servicio.tipo] || '🐾'}</div>
+                        <div><strong>${servicio.nombre}</strong></div>
+                        <div style="font-size: 14px; color: #666;">$${parseFloat(servicio.precio).toFixed(2)}</div>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+        }
+
+        // Seleccionar servicio
+        function seleccionarServicio(id, nombre, precio) {
+            datosCita.servicio_id = id;
+            document.querySelectorAll('#serviciosContainer .mascota-option').forEach(el => el.classList.remove('selected'));
+            event.target.closest('.mascota-option').classList.add('selected');
+        }
+
+        // Establecer fecha mínima (hoy)
+        function establecerFechaMinima() {
+            const hoy = new Date().toISOString().split('T')[0];
+            document.getElementById('fechaCita').min = hoy;
+        }
+
+        // Mostrar horarios disponibles
+        async function mostrarHorarios() {
+            const fecha = document.getElementById('fechaCita').value;
+            if (!fecha) {
+                alert('Por favor selecciona una fecha');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/citas/horarios-disponibles?fecha=${fecha}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const horarios = await response.json();
+
+                const container = document.getElementById('horariosContainer');
+                container.innerHTML = '';
+
+                for (let hora = 8; hora < 17; hora++) {
+                    for (let minuto of [0, 30]) {
+                        const horaStr = `${String(hora).padStart(2, '0')}:${String(minuto).padStart(2, '0')}`;
+                        const disponible = horarios.some(h => h.startsWith(horaStr));
+
+                        if (disponible) {
+                            const html = `
+                                <button onclick="seleccionarHora('${horaStr}')" class="horario-item">
+                                    ${horaStr}
+                                </button>
+                            `;
+                            container.innerHTML += html;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // Seleccionar hora
+        function seleccionarHora(hora) {
+            datosCita.hora = hora;
+            document.querySelectorAll('.horario-item').forEach(el => el.classList.remove('selected'));
+            event.target.classList.add('selected');
+        }
+
+        // Navegar entre pasos
+        function goToStep(paso) {
+            // Validar paso anterior
+            if (paso === 2 && !datosCita.mascota_id) {
+                alert('Por favor selecciona una mascota');
+                return;
+            }
+            if (paso === 3 && !datosCita.servicio_id) {
+                alert('Por favor selecciona un servicio');
+                return;
+            }
+            if (paso === 4) {
+                const fecha = document.getElementById('fechaCita').value;
+                if (!fecha) {
+                    alert('Por favor selecciona una fecha');
+                    return;
+                }
+                datosCita.fecha = fecha;
+                mostrarHorarios();
+            }
+
+            // Mostrar paso actual
+            document.querySelectorAll('.form-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(`paso${paso}`).classList.add('active');
+
+            // Actualizar indicador de pasos
+            document.querySelectorAll('.step').forEach((el, index) => {
+                el.classList.remove('active', 'completed');
+                if (index + 1 < paso) el.classList.add('completed');
+                if (index + 1 === paso) el.classList.add('active');
+            });
+
+            // Actualizar resumen en paso 5
+            if (paso === 5) {
+                const mascota = mascotas.find(m => m.id === datosCita.mascota_id);
+                const servicio = servicios.find(s => s.id === datosCita.servicio_id);
+
+                document.getElementById('resumenMascota').textContent = mascota ? mascota.nombre : '-';
+                document.getElementById('resumenServicio').textContent = servicio ? servicio.nombre : '-';
+                document.getElementById('resumenFecha').textContent = datosCita.fecha || '-';
+                document.getElementById('resumenHora').textContent = datosCita.hora || '-';
+                document.getElementById('resumenPrecio').textContent = servicio ? `$${parseFloat(servicio.precio).toFixed(2)}` : '-';
+            }
+
+            window.scrollTo(0, 0);
+        }
+
+        // Confirmar cita
+        async function confirmarCita() {
+            if (!datosCita.mascota_id || !datosCita.servicio_id || !datosCita.fecha || !datosCita.hora) {
+                alert('Por favor completa todos los campos');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/citas`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        mascota_id: datosCita.mascota_id,
+                        servicio_id: datosCita.servicio_id,
+                        fecha: datosCita.fecha,
+                        hora: datosCita.hora
+                    })
+                });
+
+                if (response.ok) {
+                    alert('✓ ¡Cita agendada exitosamente!');
+                    window.location.href = 'mis-citas.html';
+                } else {
+                    alert('Error al agendar la cita');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // Logout
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('rol');
+            localStorage.removeItem('user_id');
+            window.location.href = 'index-veterinaria.html';
+        }
+    </script>
+</body>
+
+</html>

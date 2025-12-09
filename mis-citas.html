@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Citas - Pet Care</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-50 text-gray-800">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-green-600 to-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-6 py-6">
+            <div class="flex justify-between items-center">
+                <h1 class="text-3xl font-bold">🐾 Pet Care - Mis Citas</h1>
+                <a href="index-veterinaria.html" class="text-white hover:text-green-200">← Volver al inicio</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-6 py-12">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-3xl font-bold text-gray-800">Mis Citas Veterinarias</h2>
+            <a href="agendar-cita.html" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                + Nueva Cita
+            </a>
+        </div>
+
+        <!-- Filtros -->
+        <div class="mb-6 flex gap-4">
+            <button class="px-4 py-2 rounded-lg border-2 border-green-600 text-green-600 font-semibold hover:bg-green-50" onclick="filtrarCitas('todas')">
+                Todas
+            </button>
+            <button class="px-4 py-2 rounded-lg border-2 border-gray-300 text-gray-600 hover:bg-gray-100" onclick="filtrarCitas('pendiente')">
+                Pendientes
+            </button>
+            <button class="px-4 py-2 rounded-lg border-2 border-gray-300 text-gray-600 hover:bg-gray-100" onclick="filtrarCitas('confirmada')">
+                Confirmadas
+            </button>
+            <button class="px-4 py-2 rounded-lg border-2 border-gray-300 text-gray-600 hover:bg-gray-100" onclick="filtrarCitas('completada')">
+                Completadas
+            </button>
+            <button class="px-4 py-2 rounded-lg border-2 border-gray-300 text-gray-600 hover:bg-gray-100" onclick="filtrarCitas('rechazada')">
+                Rechazadas
+            </button>
+        </div>
+
+        <!-- Lista de citas -->
+        <div id="citas-container" class="space-y-6">
+            <!-- Las citas se cargarán aquí -->
+        </div>
+
+        <div id="sin-citas" class="text-center py-12 bg-white rounded-lg">
+            <p class="text-gray-600 text-lg">No tienes citas agendadas</p>
+            <a href="agendar-cita.html" class="text-green-600 hover:text-green-700 font-semibold mt-4 inline-block">
+                Agendar tu primera cita
+            </a>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8000/api';
+        const token = localStorage.getItem('authToken');
+        let todasLasCitas = [];
+        let filtroActual = 'todas';
+
+        // Verificar autenticación
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            cargarCitas();
+        });
+
+        // Cargar citas del usuario
+        async function cargarCitas() {
+            try {
+                const response = await fetch(`${API_URL}/citas/mis`, {
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+                todasLasCitas = await response.json();
+                mostrarCitas();
+            } catch (error) {
+                console.error('Error al cargar citas:', error);
+            }
+        }
+
+        // Filtrar y mostrar citas
+        function filtrarCitas(filtro) {
+            filtroActual = filtro;
+            
+            // Actualizar botones de filtro
+            document.querySelectorAll('button').forEach(btn => {
+                btn.classList.remove('border-green-600', 'text-green-600', 'bg-green-50');
+                btn.classList.add('border-gray-300', 'text-gray-600');
+            });
+            
+            event.target.classList.add('border-green-600', 'text-green-600', 'bg-green-50');
+            event.target.classList.remove('border-gray-300', 'text-gray-600');
+            
+            mostrarCitas();
+        }
+
+        // Mostrar citas
+        function mostrarCitas() {
+            const container = document.getElementById('citas-container');
+            const sinCitas = document.getElementById('sin-citas');
+
+            let citasAMostrar = todasLasCitas;
+            if (filtroActual !== 'todas') {
+                citasAMostrar = todasLasCitas.filter(cita => cita.estado === filtroActual);
+            }
+
+            if (citasAMostrar.length === 0) {
+                container.innerHTML = '';
+                sinCitas.style.display = 'block';
+                return;
+            }
+
+            sinCitas.style.display = 'none';
+            container.innerHTML = '';
+
+            citasAMostrar.forEach(cita => {
+                const estadoColores = {
+                    'pendiente': 'bg-yellow-100 text-yellow-800 border-yellow-300',
+                    'confirmada': 'bg-blue-100 text-blue-800 border-blue-300',
+                    'completada': 'bg-green-100 text-green-800 border-green-300',
+                    'rechazada': 'bg-red-100 text-red-800 border-red-300'
+                };
+
+                const estadoTexto = {
+                    'pendiente': 'Pendiente',
+                    'confirmada': 'Confirmada',
+                    'completada': 'Completada',
+                    'rechazada': 'Rechazada'
+                };
+
+                const html = `
+                    <div class="bg-white rounded-lg shadow-lg p-6 border-l-4 border-green-600">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-800 mb-4">${cita.mascota.nombre}</h3>
+                                <div class="space-y-2 text-gray-600">
+                                    <p><span class="font-semibold">Especie:</span> ${cita.mascota.especie}</p>
+                                    <p><span class="font-semibold">Raza:</span> ${cita.mascota.raza || 'No especificada'}</p>
+                                    <p><span class="font-semibold">Edad:</span> ${cita.mascota.edad ? cita.mascota.edad + ' años' : 'No especificada'}</p>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4 class="font-semibold text-gray-800 mb-3">Detalles de la Cita</h4>
+                                <div class="space-y-2 text-gray-600">
+                                    <p><span class="font-semibold">Servicio:</span> ${cita.servicio.nombre}</p>
+                                    <p><span class="font-semibold">Fecha:</span> ${formatearFecha(cita.fecha)}</p>
+                                    <p><span class="font-semibold">Hora:</span> ${cita.hora}</p>
+                                    <p><span class="font-semibold">Precio:</span> $${parseFloat(cita.servicio.precio).toFixed(2)}</p>
+                                    ${cita.veterinario ? `<p><span class="font-semibold">Veterinario:</span> ${cita.veterinario.nombre}</p>` : ''}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 flex justify-between items-center">
+                            <span class="px-4 py-2 rounded-full border ${estadoColores[cita.estado]} font-semibold">
+                                ${estadoTexto[cita.estado]}
+                            </span>
+                            <div class="flex gap-2">
+                                ${cita.estado === 'pendiente' ? `
+                                    <button onclick="editarCita(${cita.id})" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                        Editar
+                                    </button>
+                                    <button onclick="cancelarCita(${cita.id})" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                                        Cancelar
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        ${cita.razon_rechazo ? `
+                            <div class="mt-4 p-3 bg-red-50 rounded border border-red-200">
+                                <p class="text-sm"><span class="font-semibold text-red-700">Razón del rechazo:</span> ${cita.razon_rechazo}</p>
+                            </div>
+                        ` : ''}
+
+                        ${cita.observaciones ? `
+                            <div class="mt-4 p-3 bg-blue-50 rounded border border-blue-200">
+                                <p class="text-sm"><span class="font-semibold text-blue-700">Observaciones:</span> ${cita.observaciones}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+        }
+
+        function formatearFecha(fecha) {
+            const date = new Date(fecha + 'T00:00:00');
+            return date.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+
+        function editarCita(citaId) {
+            // Implementar edición de cita
+            alert('Función de edición en desarrollo');
+        }
+
+        async function cancelarCita(citaId) {
+            if (confirm('¿Deseas cancelar esta cita?')) {
+                try {
+                    const response = await fetch(`${API_URL}/citas/${citaId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': 'Bearer ' + token
+                        }
+                    });
+
+                    if (response.ok) {
+                        alert('Cita cancelada exitosamente');
+                        cargarCitas();
+                    } else {
+                        alert('No se pudo cancelar la cita');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

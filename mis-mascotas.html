@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Mascotas - Pet Care</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-50 text-gray-800">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-green-600 to-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-6 py-6">
+            <div class="flex justify-between items-center">
+                <h1 class="text-3xl font-bold">🐾 Pet Care - Mis Mascotas</h1>
+                <a href="index-veterinaria.html" class="text-white hover:text-green-200">← Volver al inicio</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-6 py-12">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-3xl font-bold text-gray-800">Mis Mascotas</h2>
+            <button onclick="mostrarModalNuevaMascota()" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                + Nueva Mascota
+            </button>
+        </div>
+
+        <!-- Grid de mascotas -->
+        <div id="mascotas-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Las mascotas se cargarán aquí -->
+        </div>
+
+        <div id="sin-mascotas" class="text-center py-12 bg-white rounded-lg">
+            <p class="text-gray-600 text-lg">No tienes mascotas registradas</p>
+            <button onclick="mostrarModalNuevaMascota()" class="text-green-600 hover:text-green-700 font-semibold mt-4 inline-block">
+                Registrar tu primera mascota
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal Nueva/Editar Mascota -->
+    <div id="modal-mascota" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-lg p-8 max-w-md w-full mx-4">
+            <h3 id="modal-titulo" class="text-2xl font-bold text-gray-800 mb-6">Nueva Mascota</h3>
+
+            <form id="form-mascota" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Nombre</label>
+                    <input type="text" id="mascota-nombre" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Especie</label>
+                    <select id="mascota-especie" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                        <option value="">Selecciona la especie</option>
+                        <option value="Perro">Perro</option>
+                        <option value="Gato">Gato</option>
+                        <option value="Conejo">Conejo</option>
+                        <option value="Hamster">Hámster</option>
+                        <option value="Pajaro">Pájaro</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Raza (Opcional)</label>
+                    <input type="text" id="mascota-raza" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" />
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Edad (años)</label>
+                        <input type="number" id="mascota-edad" min="0" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Peso (kg)</label>
+                        <input type="number" id="mascota-peso" min="0" step="0.1" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" />
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Descripción (Opcional)</label>
+                    <textarea id="mascota-descripcion" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"></textarea>
+                </div>
+
+                <div class="flex gap-4">
+                    <button type="submit" class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold">
+                        Guardar
+                    </button>
+                    <button type="button" onclick="cerrarModalMascota()" class="flex-1 px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 font-semibold">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8000/api';
+        const token = localStorage.getItem('authToken');
+        let mascotaEnEdicion = null;
+
+        // Verificar autenticación
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            cargarMascotas();
+            document.getElementById('form-mascota').addEventListener('submit', guardarMascota);
+        });
+
+        // Cargar mascotas
+        async function cargarMascotas() {
+            try {
+                const response = await fetch(`${API_URL}/mascotas`, {
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+                const mascotas = await response.json();
+
+                const container = document.getElementById('mascotas-container');
+                const sinMascotas = document.getElementById('sin-mascotas');
+
+                if (mascotas.length === 0) {
+                    container.innerHTML = '';
+                    sinMascotas.style.display = 'block';
+                    return;
+                }
+
+                sinMascotas.style.display = 'none';
+                container.innerHTML = '';
+
+                mascotas.forEach(mascota => {
+                    const especieEmojis = {
+                        'Perro': '🐕',
+                        'Gato': '🐈',
+                        'Conejo': '🐰',
+                        'Hamster': '🐹',
+                        'Pajaro': '🐦',
+                        'Otro': '🐾'
+                    };
+
+                    const html = `
+                        <div class="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition">
+                            <div class="text-4xl mb-2">${especieEmojis[mascota.especie] || '🐾'}</div>
+                            <h3 class="text-2xl font-bold text-gray-800 mb-3">${mascota.nombre}</h3>
+                            <div class="space-y-2 text-gray-600 mb-4">
+                                <p><span class="font-semibold">Especie:</span> ${mascota.especie}</p>
+                                ${mascota.raza ? `<p><span class="font-semibold">Raza:</span> ${mascota.raza}</p>` : ''}
+                                ${mascota.edad ? `<p><span class="font-semibold">Edad:</span> ${mascota.edad} años</p>` : ''}
+                                ${mascota.peso ? `<p><span class="font-semibold">Peso:</span> ${mascota.peso} kg</p>` : ''}
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="editarMascota(${mascota.id})" class="flex-1 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+                                    Editar
+                                </button>
+                                <button onclick="eliminarMascota(${mascota.id})" class="flex-1 px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm">
+                                    Eliminar
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    container.innerHTML += html;
+                });
+            } catch (error) {
+                console.error('Error al cargar mascotas:', error);
+            }
+        }
+
+        // Mostrar modal nueva mascota
+        function mostrarModalNuevaMascota() {
+            mascotaEnEdicion = null;
+            document.getElementById('modal-titulo').textContent = 'Nueva Mascota';
+            document.getElementById('form-mascota').reset();
+            document.getElementById('modal-mascota').classList.remove('hidden');
+        }
+
+        // Cerrar modal
+        function cerrarModalMascota() {
+            document.getElementById('modal-mascota').classList.add('hidden');
+            mascotaEnEdicion = null;
+        }
+
+        // Editar mascota
+        async function editarMascota(mascotaId) {
+            try {
+                const response = await fetch(`${API_URL}/mascotas/${mascotaId}`, {
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+                const mascota = await response.json();
+
+                mascotaEnEdicion = mascota.id;
+                document.getElementById('modal-titulo').textContent = 'Editar Mascota';
+                document.getElementById('mascota-nombre').value = mascota.nombre;
+                document.getElementById('mascota-especie').value = mascota.especie;
+                document.getElementById('mascota-raza').value = mascota.raza || '';
+                document.getElementById('mascota-edad').value = mascota.edad || '';
+                document.getElementById('mascota-peso').value = mascota.peso || '';
+                document.getElementById('mascota-descripcion').value = mascota.descripcion || '';
+
+                document.getElementById('modal-mascota').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error al cargar mascota:', error);
+            }
+        }
+
+        // Guardar mascota
+        async function guardarMascota(e) {
+            e.preventDefault();
+
+            const datos = {
+                nombre: document.getElementById('mascota-nombre').value,
+                especie: document.getElementById('mascota-especie').value,
+                raza: document.getElementById('mascota-raza').value || null,
+                edad: document.getElementById('mascota-edad').value || null,
+                peso: document.getElementById('mascota-peso').value || null,
+                descripcion: document.getElementById('mascota-descripcion').value || null
+            };
+
+            try {
+                const url = mascotaEnEdicion 
+                    ? `${API_URL}/mascotas/${mascotaEnEdicion}`
+                    : `${API_URL}/mascotas`;
+                
+                const method = mascotaEnEdicion ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify(datos)
+                });
+
+                if (response.ok) {
+                    cerrarModalMascota();
+                    cargarMascotas();
+                } else {
+                    alert('Error al guardar la mascota');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // Eliminar mascota
+        async function eliminarMascota(mascotaId) {
+            if (confirm('¿Deseas eliminar esta mascota? Esto también eliminará sus citas asociadas.')) {
+                try {
+                    const response = await fetch(`${API_URL}/mascotas/${mascotaId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': 'Bearer ' + token
+                        }
+                    });
+
+                    if (response.ok) {
+                        cargarMascotas();
+                    } else {
+                        alert('No se pudo eliminar la mascota');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

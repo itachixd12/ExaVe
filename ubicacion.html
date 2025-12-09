@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ubicación - Clínica Veterinaria Pet Care</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Mapbox CSS -->
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>
+    
+    <!-- Mapbox Geocoder Plugin -->
+    <link rel='stylesheet' href='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.css' />
+    <script src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.min.js'></script>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        #mapa {
+            width: 100%;
+            height: 500px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .marker {
+            background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%2316a34a"%3E%3Cpath d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm0-13c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5z"/%3E%3C/svg%3E');
+            background-size: cover;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .mapboxgl-popup-content {
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, #16a34a 0%, #059669 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-box h3 {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .info-box p {
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-box svg {
+            width: 20px;
+            height: 20px;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-800">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-green-600 to-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-6 py-6">
+            <div class="flex flex-row justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <span class="text-4xl">🐾</span>
+                    <h1 class="text-4xl font-bold">Clínica Veterinaria Pet Care</h1>
+                </div>
+                <nav class="hidden md:flex md:items-center md:space-x-6">
+                    <ul class="flex space-x-6">
+                        <li><a href="index-veterinaria.html" class="hover:text-green-200">Inicio</a></li>
+                        <li><a href="index-veterinaria.html#servicios" class="hover:text-green-200">Servicios</a></li>
+                        <li><a href="ubicacion.html" class="font-bold text-yellow-300">Ubicación</a></li>
+                        <li id="usuario-menu" style="display:none;">
+                            <a href="mis-citas.html" class="hover:text-green-200">Mis Citas</a>
+                        </li>
+                        <li id="usuario-menu" style="display:none;">
+                            <a href="mis-mascotas.html" class="hover:text-green-200">Mis Mascotas</a>
+                        </li>
+                    </ul>
+                    <button onclick="logout()" id="btnLogout" style="display:none;" class="ml-6 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded">
+                        Cerrar sesión
+                    </button>
+                </nav>
+                <div id="auth-menu" class="hidden md:flex md:space-x-4">
+                    <a href="login.html" class="px-4 py-2 bg-white text-green-600 rounded font-semibold hover:bg-gray-100">
+                        Iniciar sesión
+                    </a>
+                    <a href="register.html" class="px-4 py-2 bg-green-700 text-white rounded hover:bg-green-800">
+                        Registrarse
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenido Principal -->
+    <section class="container mx-auto px-6 py-12">
+        <h2 class="text-4xl font-bold mb-8 text-center text-gray-800">Encuentranos en el Mapa</h2>
+        
+        <!-- Mapa Mapbox -->
+        <div id="mapa" class="mb-8"></div>
+
+        <!-- Información de la Clínica -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Información de Contacto -->
+            <div class="bg-white p-8 rounded-lg shadow-lg">
+                <h3 class="text-2xl font-bold mb-6 text-green-600">📍 Información de la Clínica</h3>
+                
+                <div class="info-box" style="background: linear-gradient(135deg, #16a34a 0%, #059669 100%); color: white;">
+                    <p class="mb-4">
+                        <svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+                        <span><strong>Dirección:</strong> Calle Principal 123, Centro Veterinario</span>
+                    </p>
+                    <p class="mb-4">
+                        <svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+                        <span><strong>Teléfono:</strong> +57 (1) 1234-5678</span>
+                    </p>
+                    <p class="mb-4">
+                        <svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                        <span><strong>Email:</strong> info@petcare.com</span>
+                    </p>
+                    <p class="mb-0">
+                        <svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M11 17h2v-6h-2v6zm1-15C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6z"/></svg>
+                        <span><strong>Horario:</strong> Lunes - Viernes: 8:00 AM - 5:00 PM</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Horarios y Servicios -->
+            <div class="bg-white p-8 rounded-lg shadow-lg">
+                <h3 class="text-2xl font-bold mb-6 text-green-600">⏰ Horarios</h3>
+                
+                <div class="mb-6 p-4 bg-green-50 border-l-4 border-green-600 rounded">
+                    <p class="font-bold text-green-700 mb-2">Horario Regular:</p>
+                    <p class="text-gray-700">📅 Lunes a Viernes</p>
+                    <p class="text-gray-700">🕐 8:00 AM - 5:00 PM</p>
+                    <p class="text-gray-700">⏸️ Descanso: 12:00 PM - 1:00 PM</p>
+                </div>
+
+                <div class="p-4 bg-blue-50 border-l-4 border-blue-600 rounded">
+                    <p class="font-bold text-blue-700 mb-2">Servicios de Emergencia:</p>
+                    <p class="text-gray-700">📞 Llamar: +57 (1) 9999-9999</p>
+                    <p class="text-gray-700">⏰ Disponible 24/7</p>
+                    <p class="text-gray-700">🚨 Solo casos de emergencia</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botón para Agendar -->
+        <div class="mt-12 text-center">
+            <a href="agendar-cita.html" class="inline-block px-8 py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg text-lg transition-all">
+                🐾 Agendar Cita Ahora
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8 mt-12">
+        <div class="container mx-auto px-6 text-center">
+            <p>&copy; 2024 Clínica Veterinaria Pet Care. Todos los derechos reservados.</p>
+            <p class="mt-2">🐾 Cuidando de tus mascotas como si fueran nuestras 🐾</p>
+        </div>
+    </footer>
+
+    <script>
+        // Verificar autenticación
+        document.addEventListener('DOMContentLoaded', function () {
+            const token = localStorage.getItem('token');
+            const rol = localStorage.getItem('rol');
+            
+            if (token && rol === 'cliente') {
+                document.getElementById('auth-menu').style.display = 'none';
+                document.getElementById('usuario-menu').style.display = 'inline-block';
+                document.getElementById('btnLogout').style.display = 'inline-block';
+            }
+        });
+
+        // Logout
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('rol');
+            localStorage.removeItem('user_id');
+            window.location.href = 'index-veterinaria.html';
+        }
+
+        // Inicializar Mapbox
+        mapboxgl.accessToken = 'pk.eyJ1IjoiZXJpY2tzdGV2ZW4xNyIsImEiOiJjbWl6M25jcjgwbTJ4M2tweTJ5dXEzc29iIn0.gCKA1vCnL0A1rY2qSL3uqQ';
+        
+        const map = new mapboxgl.Map({
+            container: 'mapa',
+            style: 'mapbox://styles/mapbox/streets-v12',
+            center: [-74.0060, 4.7110], // Coordenadas de Bogotá, Colombia (puedes cambiar)
+            zoom: 13
+        });
+
+        // Crear marcador de la clínica
+        const clinicMarker = new mapboxgl.Marker({ color: '#16a34a' })
+            .setLngLat([-74.0060, 4.7110])
+            .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`
+                <div style="padding: 10px;">
+                    <h4 style="font-weight: bold; margin-bottom: 8px; color: #16a34a;">🐾 Clínica Veterinaria Pet Care</h4>
+                    <p style="margin: 5px 0; font-size: 14px;"><strong>Dirección:</strong> Calle Principal 123</p>
+                    <p style="margin: 5px 0; font-size: 14px;"><strong>Teléfono:</strong> +57 (1) 1234-5678</p>
+                    <p style="margin: 5px 0; font-size: 14px;"><strong>Horario:</strong> 8:00 AM - 5:00 PM</p>
+                    <p style="margin: 5px 0; font-size: 14px;"><strong>Email:</strong> info@petcare.com</p>
+                </div>
+            `))
+            .addTo(map);
+
+        // Abrir popup al cargar
+        clinicMarker.togglePopup();
+
+        // Agregar controles
+        map.addControl(new mapboxgl.NavigationControl());
+        
+        // Agregar geocodificador (buscador)
+        const geocoder = new MapboxGeocoder({
+            accessToken: mapboxgl.accessToken,
+            mapboxgl: mapboxgl,
+            language: 'es'
+        });
+        
+        map.addControl(geocoder);
+
+        // Agregar control de geolocalización
+        const geolocate = new mapboxgl.GeolocateControl({
+            positionOptions: {
+                enableHighAccuracy: true
+            },
+            trackUserLocation: false,
+            showUserHeading: true
+        });
+        
+        map.addControl(geolocate);
+
+        // Cuando se busca una ubicación, mostrar distancia a la clínica
+        geocoder.on('result', (e) => {
+            const searchResult = e.result.geometry.coordinates;
+            const clinicCoords = [-74.0060, 4.7110];
+            
+            // Calcular distancia aproximada
+            const distance = calculateDistance(searchResult[1], searchResult[0], clinicCoords[1], clinicCoords[0]);
+            
+            // Crear marcador de búsqueda
+            new mapboxgl.Marker({ color: '#3b82f6' })
+                .setLngLat(searchResult)
+                .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`
+                    <div style="padding: 10px;">
+                        <h4 style="font-weight: bold; margin-bottom: 8px; color: #3b82f6;">${e.result.place_name}</h4>
+                        <p style="margin: 5px 0; font-size: 14px;"><strong>Distancia a la clínica:</strong> ${distance.toFixed(2)} km</p>
+                    </div>
+                `))
+                .addTo(map);
+        });
+
+        // Función para calcular distancia entre dos puntos
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Radio de la Tierra en km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+    </script>
+</body>
+
+</html>
